@@ -1,5 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
+gunicorn
 curl_cffi
 httpx
 beautifulsoup4
