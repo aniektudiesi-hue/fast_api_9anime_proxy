@@ -40,6 +40,18 @@ HEADERS = {
 session = cf_requests.Session()
 
 
+def get_base_url(request: Request) -> str:
+    """
+    Returns the correct base URL, forcing https:// on Render (and any
+    reverse-proxy environment that sets X-Forwarded-Proto).
+    """
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    base = str(request.base_url).rstrip("/")
+    if forwarded_proto == "https" and base.startswith("http://"):
+        base = "https://" + base[len("http://"):]
+    return base
+
+
 def fix_url(url: str) -> str:
     parsed = urlparse(url)
     return parsed._replace(
@@ -88,8 +100,15 @@ def rewrite_m3u8(content: str, original_url: str, base_local: str) -> str:
 
     return "\n".join(out)
 
+
 def is_m3u8(url: str, text: str) -> bool:
     return ".m3u8" in url or text.strip().startswith("#EXTM3U")
+
+
+@app.get("/")
+async def root():
+    return {"status": "ok"}
+
 
 @app.get("/api/servers/{episodeId}/{type}")
 async def api_servers(episodeId: int, type: str = "sub"):
@@ -144,7 +163,6 @@ async def api_servers(episodeId: int, type: str = "sub"):
 
 @app.get("/stream")
 async def stream_m3u8(request: Request, src: str):
-
     master_url = unquote(src) if src else ""
     if not master_url:
         return Response("No src provided", status_code=400)
@@ -154,7 +172,7 @@ async def stream_m3u8(request: Request, src: str):
     if resp.status_code != 200:
         return Response(content=f"Failed: {resp.status_code}", status_code=502)
 
-    base_local = str(request.base_url).rstrip("/")
+    base_local = get_base_url(request)  # ← KEY FIX: always https on Render
     rewritten = rewrite_m3u8(resp.text, master_url, base_local)
     return Response(
         content=rewritten,
@@ -184,7 +202,7 @@ async def proxy_chunk(request: Request):
 
     text = resp.text
     if is_m3u8(url, text):
-        base_local = str(request.base_url).rstrip("/")
+        base_local = get_base_url(request)  # ← KEY FIX here too
         rewritten = rewrite_m3u8(text, url, base_local)
         return Response(
             content=rewritten,
