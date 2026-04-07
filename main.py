@@ -23,19 +23,22 @@ DATE = "3/29/2026%2012:00"
 
 HEADERS = {
     "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br, zstd",
-    "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",          # no zstd — Linux curl_cffi chokes on it
+    "Accept-Language": "en-US,en;q=0.9",
     "Connection": "keep-alive",
     "Origin": "https://rapid-cloud.co",
     "Referer": "https://rapid-cloud.co/",
-    "sec-ch-ua": '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
-    "sec-ch-ua-mobile": "?1",
-    "sec-ch-ua-platform": '"Android"',
+    "sec-ch-ua": '"Google Chrome";v="136", "Chromium";v="136", "Not-A.Brand";v="99"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Linux"',                  # match the actual OS on Render
     "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Site": "cross-site",
-    "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
 }
+
+# chrome136 — latest stable, Linux-compatible TLS fingerprint
+IMPERSONATE = "chrome136"
 
 session = cf_requests.Session()
 
@@ -63,7 +66,7 @@ def fix_url(url: str) -> str:
 def fetch(url: str) -> cf_requests.Response:
     h = HEADERS.copy()
     h["Host"] = urlparse(url).netloc
-    return session.get(fix_url(url), headers=h, impersonate="chrome110", allow_redirects=True)
+    return session.get(fix_url(url), headers=h, impersonate=IMPERSONATE, allow_redirects=True)
 
 
 def rewrite_m3u8(content: str, original_url: str, base_local: str) -> str:
