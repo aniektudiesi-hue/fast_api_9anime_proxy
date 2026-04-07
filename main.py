@@ -63,10 +63,20 @@ def fix_url(url: str) -> str:
     ).geturl()
 
 
+PROXY = "http://dcznsktz:khvgikqdia1f@31.59.20.176:6754"
+
 def fetch(url: str) -> cf_requests.Response:
+    parsed = urlparse(url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
     h = HEADERS.copy()
-    h["Host"] = urlparse(url).netloc
-    return session.get(fix_url(url), headers=h, impersonate=IMPERSONATE, allow_redirects=True)
+    h["Host"]    = parsed.netloc
+    h["Origin"]  = origin
+    h["Referer"] = origin + "/"
+    return session.get(
+        fix_url(url), headers=h, impersonate=IMPERSONATE,
+        proxies={"https": PROXY, "http": PROXY},
+        allow_redirects=True
+    )
 
 
 def rewrite_m3u8(content: str, original_url: str, base_local: str) -> str:
